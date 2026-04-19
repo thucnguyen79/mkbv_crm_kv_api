@@ -67,6 +67,9 @@ services:
       # NEXTAUTH_URL phải khớp domain user truy cập
       NEXTAUTH_URL: http://${PUBLIC_HOST}:${PUBLIC_PORT}
       NEXT_PUBLIC_API_URL: http://${PUBLIC_HOST}:${PUBLIC_PORT}/api/v1
+      # Server-side fetches (NextAuth credentials, refresh) — đi qua docker network
+      # tránh NAT loopback khi public URL trỏ về cùng modem.
+      INTERNAL_API_URL: http://api:3000/api/v1
 
   caddy:
     image: caddy:2-alpine
