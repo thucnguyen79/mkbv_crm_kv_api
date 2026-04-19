@@ -27,6 +27,9 @@ services:
   api:
     restart: unless-stopped
     ports: !reset []
+    # Production image không có prisma CLI (devDep) — skip migrate ở entrypoint.
+    # Migrate chạy bằng one-shot service `migrate` bên dưới.
+    command: ["node", "dist/main.js"]
     environment:
       NODE_ENV: production
       LOG_LEVEL: info
@@ -35,6 +38,25 @@ services:
       CORS_ORIGINS: http://${PUBLIC_HOST}:${PUBLIC_PORT}
     volumes:
       - uploads:/app/uploads
+
+  migrate:
+    image: node:20-alpine
+    container_name: mkbv_migrate
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-crm}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-crm}
+    volumes:
+      - ./apps/api/prisma:/prisma:ro
+    working_dir: /tmp
+    command:
+      - sh
+      - -c
+      - |
+        npm install prisma@5.20.0 --no-save --silent && \
+        npx prisma migrate deploy --schema=/prisma/schema.prisma
 
   web:
     restart: unless-stopped
