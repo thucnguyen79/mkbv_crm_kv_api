@@ -1,0 +1,115 @@
+# docker-compose.prod.yml — triển khai VPS single-node.
+# Use: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Thay đổi so với dev:
+#  - Không expose postgres/redis ra host (chỉ internal network)
+#  - Caddy reverse proxy + auto TLS cho {API_DOMAIN}, {WEB_DOMAIN}
+#  - Volume persist cho uploads + caddy certs + postgres data + redis
+#  - Resource limits cơ bản
+#  - Backup container chạy cron pg_dump hàng đêm
+#
+# Env bắt buộc: API_DOMAIN, WEB_DOMAIN, ACME_EMAIL, POSTGRES_PASSWORD, JWT_*_SECRET, NEXTAUTH_SECRET
+
+services:
+  postgres:
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    command:
+      - postgres
+      - -c
+      - log_min_duration_statement=500
+      - -c
+      - shared_buffers=256MB
+
+  redis:
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  api:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: https://${WEB_DOMAIN}
+    volumes:
+      - uploads:/app/uploads
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  web:
+    restart: unless-stopped
+    ports: !reset []
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN}/api/v1
+    environment:
+      NEXTAUTH_URL: https://${WEB_DOMAIN}
+      NEXT_PUBLIC_API_URL: https://${API_DOMAIN}/api/v1
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: mkbv_caddy
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp' # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+      WEB_DOMAIN: ${WEB_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    depends_on:
+      - api
+      - web
+
+  db_backup:
+    image: postgres:16-alpine
+    container_name: mkbv_db_backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:-crm}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-crm_local_dev}
+      PGDATABASE: ${POSTGRES_DB:-crm}
+      BACKUP_RETENTION_DAYS: '14'
+    volumes:
+      - ./scripts/backup-db.sh:/backup.sh:ro
+      - backups:/backups
+    entrypoint: ['/bin/sh', '-c']
+    # Chạy cron daily 3am — mỗi lần đẻ 1 dump gzip vào volume `backups`
+    command: |
+      "apk add --no-cache dcron bash gzip && \
+       echo '0 3 * * * /backup.sh >> /var/log/backup.log 2>&1' | crontab - && \
+       touch /var/log/backup.log && \
+       crond -f -l 2 & \
+       tail -F /var/log/backup.log"
+
+volumes:
+  uploads:
+  caddy_data:
+  caddy_config:
+  backups:

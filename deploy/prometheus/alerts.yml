@@ -1,0 +1,100 @@
+# Prometheus alert rules cho MKBV CRM.
+# Mount vào prometheus.yml:
+#   rule_files:
+#     - /etc/prometheus/alerts.yml
+# Khởi động Prometheus: `docker run -v ./alerts.yml:/etc/prometheus/alerts.yml ...`
+# Alertmanager gửi notif qua Slack/email khi rule khớp `for:` duration.
+
+groups:
+  - name: mkbv_sync
+    interval: 30s
+    rules:
+      - alert: MkbvSyncFailedEntities
+        expr: mkbv_sync_failed_entities > 0
+        for: 30m
+        labels:
+          severity: warning
+          component: sync
+        annotations:
+          summary: '{{ $value }} sync entity đang fail quá 30 phút'
+          description: |
+            Có {{ $value }} entity ở trạng thái failed. Check dashboard /dashboard/sync
+            hoặc endpoint GET /api/v1/sync/status để xem chi tiết. Thường là do
+            KiotViet rate limit (429), socket timeout, hoặc credentials expired.
+
+      - alert: MkbvSyncStuckRunning
+        # Cursor `running` kéo dài > 30 phút — job có thể đã crash nhưng DB chưa clean
+        expr: time() - mkbv_sync_last_run_at_seconds > 1800 and mkbv_sync_last_run_status{status="running"} > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: sync
+        annotations:
+          summary: 'Sync stuck ở trạng thái running > 30 phút'
+          description: |
+            Job có thể đã crash. Kiểm tra log và reset cursor nếu cần:
+            POST /api/v1/sync/{entity}/reset-cursor
+
+  - name: mkbv_messaging
+    interval: 30s
+    rules:
+      - alert: MkbvMessageFailedSpike
+        expr: mkbv_message_failed_24h > 10
+        for: 15m
+        labels:
+          severity: warning
+          component: messaging
+        annotations:
+          summary: '> 10 tin nhắn FAILED trong 24h'
+          description: |
+            Provider ZNS/SMS có thể gặp sự cố. Check /dashboard/messages với filter
+            status=FAILED để xem errorMessage.
+
+      - alert: MkbvMessageQueueBacklog
+        expr: mkbv_message_queued > 500
+        for: 10m
+        labels:
+          severity: critical
+          component: messaging
+        annotations:
+          summary: 'Queue messaging đang tồn {{ $value }} tin — worker có thể chết'
+          description: |
+            Worker BullMQ có thể crash hoặc provider block. Restart container api
+            hoặc check `docker compose logs api`.
+
+  - name: mkbv_inventory
+    interval: 1m
+    rules:
+      - alert: MkbvLowStockSpike
+        # Info only — dùng cho dashboard, không page oncall
+        expr: mkbv_low_stock_records > 50
+        for: 1h
+        labels:
+          severity: info
+          component: inventory
+        annotations:
+          summary: '{{ $value }} (SP × CN) đang dưới minStock'
+          description: 'Có thể cần review kế hoạch nhập hàng.'
+
+  - name: mkbv_runtime
+    interval: 30s
+    rules:
+      - alert: MkbvEventLoopLag
+        expr: histogram_quantile(0.95, rate(nodejs_eventloop_lag_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: runtime
+        annotations:
+          summary: 'Event loop p95 lag > 100ms'
+          description: 'API chậm phản hồi — kiểm tra CPU / heavy sync / long query.'
+
+      - alert: MkbvApiDown
+        expr: up{job="mkbv-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: runtime
+        annotations:
+          summary: 'API instance không scrape được /metrics'
+          description: 'Container api có thể crash. docker compose ps + docker compose logs api.'

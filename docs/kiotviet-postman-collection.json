@@ -1,0 +1,363 @@
+{
+  "info": {
+    "_postman_id": "a3f9c2b1-kv-crm-mkbv-0001",
+    "name": "KiotViet Public API (MKBV CRM)",
+    "description": "Test KiotViet Public API endpoints đang dùng trong CRM.\n\nCách dùng:\n1. Vào tab **Variables** của collection, điền `retailer`, `clientId`, `clientSecret`.\n2. Chạy `Auth / Get Access Token` trước — script tự lưu `accessToken` vào collection variable.\n3. Các request khác tự động gắn `Authorization: Bearer {{accessToken}}` và header `Retailer: {{retailer}}`.\n\nToken có TTL ~24h. Khi hết hạn chạy lại request 1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "tokenUrl", "value": "https://id.kiotviet.vn/connect/token", "type": "string" },
+    { "key": "baseUrl", "value": "https://public.kiotapi.com", "type": "string" },
+    { "key": "retailer", "value": "your-retailer-name", "type": "string" },
+    { "key": "clientId", "value": "", "type": "string" },
+    { "key": "clientSecret", "value": "", "type": "string" },
+    { "key": "scope", "value": "PublicApi.Access", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "lastModifiedFrom", "value": "2026-04-01T00:00:00Z", "type": "string" },
+    { "key": "customerId", "value": "0", "type": "string" },
+    { "key": "customerCode", "value": "", "type": "string" },
+    { "key": "orderId", "value": "0", "type": "string" },
+    { "key": "orderCode", "value": "", "type": "string" },
+    { "key": "invoiceId", "value": "0", "type": "string" },
+    { "key": "invoiceCode", "value": "", "type": "string" },
+    { "key": "productId", "value": "0", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Get Access Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "client_credentials" },
+                { "key": "client_id", "value": "{{clientId}}" },
+                { "key": "client_secret", "value": "{{clientSecret}}" },
+                { "key": "scope", "value": "{{scope}}" }
+              ]
+            },
+            "url": { "raw": "{{tokenUrl}}", "host": ["{{tokenUrl}}"] },
+            "description": "OAuth2 client_credentials. Script tự lưu `access_token` vào biến collection `accessToken`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.expect(json.access_token, 'access_token').to.be.a('string');",
+                  "pm.collectionVariables.set('accessToken', json.access_token);",
+                  "console.log('Token saved. expires_in =', json.expires_in, 's');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Branches",
+      "item": [
+        {
+          "name": "GET /branches",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/branches?pageSize=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["branches"],
+              "query": [{ "key": "pageSize", "value": "100" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "GET /users",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/users?pageSize=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [{ "key": "pageSize", "value": "100" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "GET /categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/categories?pageSize=100&hierachicalData=true&orderBy=modifiedDate&orderDirection=ASC",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"],
+              "query": [
+                { "key": "pageSize", "value": "100" },
+                { "key": "hierachicalData", "value": "true" },
+                { "key": "orderBy", "value": "modifiedDate" },
+                { "key": "orderDirection", "value": "ASC" },
+                { "key": "lastModifiedFrom", "value": "{{lastModifiedFrom}}", "disabled": true }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET /products (list, incremental)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/products?pageSize=100&orderBy=modifiedDate&orderDirection=ASC&includeRemoveIds=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                { "key": "pageSize", "value": "100" },
+                { "key": "currentItem", "value": "0", "disabled": true },
+                { "key": "orderBy", "value": "modifiedDate" },
+                { "key": "orderDirection", "value": "ASC" },
+                { "key": "includeRemoveIds", "value": "true" },
+                { "key": "lastModifiedFrom", "value": "{{lastModifiedFrom}}", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /products/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "{{productId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        {
+          "name": "GET /customers (list, incremental)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customers?pageSize=100&orderBy=modifiedDate&orderDirection=ASC&includeRemoveIds=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"],
+              "query": [
+                { "key": "pageSize", "value": "100" },
+                { "key": "currentItem", "value": "0", "disabled": true },
+                { "key": "orderBy", "value": "modifiedDate" },
+                { "key": "orderDirection", "value": "ASC" },
+                { "key": "includeRemoveIds", "value": "true" },
+                { "key": "lastModifiedFrom", "value": "{{lastModifiedFrom}}", "disabled": true }
+              ]
+            },
+            "description": "Đây là endpoint chính mà `CustomerSyncStrategy` dùng. Bật `lastModifiedFrom` để thử incremental sync."
+          }
+        },
+        {
+          "name": "GET /customers/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{customerId}}"]
+            }
+          }
+        },
+        {
+          "name": "GET /customers/code/:code",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/customers/code/{{customerCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "code", "{{customerCode}}"]
+            }
+          }
+        },
+        {
+          "name": "POST /customers (chưa dùng — Read-only v1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Retailer", "value": "{{retailer}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Customer\",\n  \"contactNumber\": \"0987654321\",\n  \"email\": \"test@example.com\",\n  \"gender\": true,\n  \"birthDate\": \"1990-01-01\",\n  \"address\": \"123 Test Street\",\n  \"branchId\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers"]
+            },
+            "description": "Chỉ để test — MKBV CRM hiện đi theo hướng read-only, không push ngược."
+          }
+        },
+        {
+          "name": "PUT /customers/:id (chưa dùng — Read-only v1)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Retailer", "value": "{{retailer}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"comments\": \"Updated via API test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/customers/{{customerId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["customers", "{{customerId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "GET /orders (list, incremental)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/orders?pageSize=100&orderBy=modifiedDate&orderDirection=ASC&includeOrderDetails=true&includeRemoveIds=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"],
+              "query": [
+                { "key": "pageSize", "value": "100" },
+                { "key": "currentItem", "value": "0", "disabled": true },
+                { "key": "orderBy", "value": "modifiedDate" },
+                { "key": "orderDirection", "value": "ASC" },
+                { "key": "includeOrderDetails", "value": "true" },
+                { "key": "includeRemoveIds", "value": "true" },
+                { "key": "lastModifiedFrom", "value": "{{lastModifiedFrom}}", "disabled": true },
+                { "key": "branchIds", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /orders/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}"]
+            }
+          }
+        },
+        {
+          "name": "GET /orders/code/:code",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/orders/code/{{orderCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "code", "{{orderCode}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "item": [
+        {
+          "name": "GET /invoices (list, incremental)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/invoices?pageSize=100&orderBy=modifiedDate&orderDirection=ASC&includeInvoiceDetails=true&includePayment=true&includeRemoveIds=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices"],
+              "query": [
+                { "key": "pageSize", "value": "100" },
+                { "key": "currentItem", "value": "0", "disabled": true },
+                { "key": "orderBy", "value": "modifiedDate" },
+                { "key": "orderDirection", "value": "ASC" },
+                { "key": "includeInvoiceDetails", "value": "true" },
+                { "key": "includePayment", "value": "true" },
+                { "key": "includeRemoveIds", "value": "true" },
+                { "key": "lastModifiedFrom", "value": "{{lastModifiedFrom}}", "disabled": true },
+                { "key": "branchIds", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices/:id",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/{{invoiceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices", "{{invoiceId}}"]
+            }
+          }
+        },
+        {
+          "name": "GET /invoices/code/:code",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Retailer", "value": "{{retailer}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/invoices/code/{{invoiceCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["invoices", "code", "{{invoiceCode}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+node_modules
+dist
+build
+.next
+out
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+*.log
+logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+coverage
+.nyc_output
+
+.DS_Store
+Thumbs.db
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Prisma
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+
+# Docker
+pgdata
+redisdata
+
+# Uploads (user-generated, không vào git)
+uploads/products/*
+!uploads/.gitignore
+
+# Generated Prisma client
+apps/api/node_modules/.prisma
+apps/api/node_modules/@prisma/client
+
+# Claude Code workspace files (per-user, không vào repo)
+.claude/

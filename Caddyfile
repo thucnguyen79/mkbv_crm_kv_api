@@ -1,0 +1,70 @@
+# Caddy — auto TLS qua Let's Encrypt.
+# {env.API_DOMAIN}, {env.WEB_DOMAIN}, {env.ACME_EMAIL} bind từ compose.
+#
+# Cấu hình:
+#  - Web (Next.js) tại web domain, toàn bộ path
+#  - API (NestJS) tại api domain, path /api/* và /uploads/* (ảnh SP)
+#  - /metrics và /api/v1/metrics chặn public (CIDR internal)
+#  - KiotViet webhook bypass rate limit
+
+{
+	email {env.ACME_EMAIL}
+	# Log lên stdout cho docker logs
+	log {
+		output stdout
+		format json
+	}
+}
+
+# ====== Web (dashboard) ======
+{env.WEB_DOMAIN} {
+	encode zstd gzip
+
+	# Security headers
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	reverse_proxy web:3001
+}
+
+# ====== API ======
+{env.API_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+
+	# Chặn /metrics ra public — chỉ cho internal network (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+	@metrics path /api/v1/metrics /metrics
+	@public_metrics {
+		expression {http.request.remote.host}.matches("^(10\\.|172\\.(1[6-9]|2[0-9]|3[0-1])\\.|192\\.168\\.|127\\.)") == false
+	}
+	respond @public_metrics 403 {
+		body "Forbidden"
+		close
+	}
+
+	# KiotViet webhook — cần rawBody để verify HMAC
+	@webhook path /api/v1/webhooks/*
+
+	reverse_proxy api:3000 {
+		# KiotViet webhook: body size lớn + timeout đủ
+		transport http {
+			read_timeout 30s
+			write_timeout 30s
+		}
+	}
+
+	# Upload size giới hạn 10MB (ảnh SP)
+	request_body {
+		max_size 10MB
+	}
+}

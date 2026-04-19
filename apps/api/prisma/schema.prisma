@@ -1,0 +1,546 @@
+// Prisma schema — MKBV CRM & Messaging
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Core =====
+
+model Branch {
+  id         Int      @id @default(autoincrement())
+  externalId BigInt   @unique // KiotViet branchId
+  name       String
+  address    String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  customers Customer[]
+  orders    Order[]
+  users     User[]
+  stocks    ProductStock[]
+
+  @@index([externalId])
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER // duyệt campaign run (sau này có thể mở rộng: duyệt template, xem budget)
+  STAFF
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  externalId   BigInt?  @unique // KiotViet userId (nullable — local-only users allowed)
+  email        String   @unique
+  passwordHash String
+  fullName     String
+  role         UserRole @default(STAFF) // legacy enum — giữ backward compat, source of truth là `roleRef`
+  roleId       Int?
+  roleRef      Role?    @relation(fields: [roleId], references: [id])
+  branchId     Int?
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([roleId])
+}
+
+/// Role động — admin có thể tạo custom role ngoài 3 preset (admin/manager/staff).
+model Role {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique // slug: 'admin', 'manager', 'staff', 'cskh', ...
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) // 3 role preset không xoá được
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       User[]
+}
+
+/// Catalog permission. Seed từ code, không CRUD qua UI.
+model Permission {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique // 'customer.read', 'campaign.approve', ...
+  resource    String // 'customer', 'campaign', ...
+  action      String // 'read' | 'write' | 'delete' | 'approve' | ...
+  group       String // UI grouping: 'Khách hàng', 'Campaign', ...
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles RolePermission[]
+
+  @@index([resource])
+  @@index([group])
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  grantedAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+}
+
+// ===== Customer =====
+
+model Customer {
+  id             Int       @id @default(autoincrement())
+  externalId     BigInt?   @unique // KiotViet customerId
+  externalCode   String?   @unique
+  name           String
+  phone          String    @unique // dedupe key
+  email          String?
+  gender         Boolean?
+  birthDate      DateTime?
+  address        String?
+  locationName   String?
+  wardName       String?
+  branchId       Int?
+  branch         Branch?   @relation(fields: [branchId], references: [id])
+  totalSpent     Decimal   @default(0) @db.Decimal(18, 2)
+  lastPurchaseAt DateTime?
+  facebookPsid   String?
+  zaloUserId     String?
+  note           String?
+  kvRewardPoint  Int       @default(0) // read-only từ KiotViet
+  deletedAt      DateTime? // soft-delete khi KV xoá (từ removedIds)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  loyalty       LoyaltyAccount?
+  orders        Order[]
+  messageLogs   MessageLog[]
+  campaignExecs CampaignExecution[]
+
+  @@index([phone])
+  @@index([lastPurchaseAt])
+  @@index([totalSpent])
+}
+
+// ===== Order / Invoice =====
+
+enum OrderSource {
+  ORDER
+  INVOICE
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  externalId   BigInt      @unique
+  externalCode String      @unique
+  sourceType   OrderSource
+  customerId   Int?
+  customer     Customer?   @relation(fields: [customerId], references: [id])
+  branchId     Int?
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+  totalAmount  Decimal     @db.Decimal(18, 2)
+  discount     Decimal     @default(0) @db.Decimal(18, 2)
+  status       String // map từ KiotViet
+  purchasedAt  DateTime
+  raw          Json // snapshot KiotViet payload
+  deletedAt    DateTime? // soft-delete khi KV xoá (removedIds)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  items OrderItem[]
+
+  @@index([customerId, purchasedAt])
+  @@index([branchId])
+  @@index([purchasedAt])
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id])
+  name      String // snapshot tên SP
+  quantity  Decimal  @db.Decimal(12, 3)
+  price     Decimal  @db.Decimal(18, 2)
+  discount  Decimal  @default(0) @db.Decimal(18, 2)
+}
+
+model Product {
+  id          Int       @id @default(autoincrement())
+  externalId  BigInt    @unique
+  code        String    @unique
+  name        String
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  basePrice   Decimal   @db.Decimal(18, 2) // giá bán
+  costPrice   Decimal   @default(0) @db.Decimal(18, 2) // giá mua (từ KiotViet `cost`)
+  barcode     String?
+  description String?
+  isActive    Boolean   @default(true)
+  isTracked   Boolean   @default(true) // có track tồn kho
+  // CRM-side extensions
+  tags        String[]  @default([]) // VD: ['hot-sale', 'new-arrival']
+  attributes  Json? // { color:'brown', frameType:'full', material:'titan' }
+  minStock    Int? // ngưỡng cảnh báo (nullable = không alert)
+  // Variant grouping — nhiều SP cùng model khác màu/size
+  masterProductId BigInt? // KiotViet masterProductId (tham khảo)
+  masterCode      String?
+  variantGroupId  Int?
+  variantGroup    ProductVariantGroup? @relation(fields: [variantGroupId], references: [id], onDelete: SetNull)
+  updatedAt       DateTime @updatedAt
+
+  items  OrderItem[]
+  stocks ProductStock[]
+  images ProductImage[]
+
+  @@index([code])
+  @@index([variantGroupId])
+  @@index([masterProductId])
+  @@index([tags], type: Gin)
+}
+
+/// Nhóm biến thể — 1 model có nhiều SP (cùng form, khác màu/size/chất liệu).
+/// UI có thể hiện tồn kho tổng của group.
+model ProductVariantGroup {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique // slug dùng để tra — VD: 'rayban-aviator-classic'
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products Product[]
+}
+
+/// Tồn kho theo (SP × chi nhánh). Upsert từ KiotViet `product.inventories`.
+model ProductStock {
+  id                  Int      @id @default(autoincrement())
+  productId           Int
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branchId            Int
+  branch              Branch   @relation(fields: [branchId], references: [id])
+  onHand              Int      @default(0)
+  reserved            Int      @default(0)
+  // Aging: reset timestamp mỗi khi onHand tăng (nhập hàng / chuyển đến).
+  // Aging = now - lastStockIncreaseAt khi onHand > 0.
+  lastStockIncreaseAt DateTime?
+  // Velocity & reorder — cập nhật bởi cron daily (velocity.scheduler).
+  velocity30d         Float        @default(0) // units / day trung bình 30 ngày gần nhất
+  reorderPoint        Int? // = ceil(velocity30d × (leadDays + safetyDays))
+  velocityTag         VelocityTag?
+  velocityUpdatedAt   DateTime?
+  lastKvSyncedAt      DateTime?
+
+  @@unique([productId, branchId])
+  @@index([branchId, onHand])
+  @@index([velocityTag])
+  @@index([lastStockIncreaseAt])
+}
+
+enum VelocityTag {
+  FAST_MOVER // bán > fast threshold / ngày
+  NORMAL
+  SLOW_MOVER // bán < slow threshold / ngày
+  DEAD // không bán trong N ngày, còn tồn
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String // relative path: products/:productId/:filename
+  filename  String // original
+  mimeType  String
+  sizeBytes Int
+  order     Int      @default(0)
+  isPrimary Boolean  @default(false)
+  caption   String?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+/// Registry thuộc tính custom — UI build form + validate.
+model AttributeDefinition {
+  id        Int           @id @default(autoincrement())
+  code      String        @unique // 'color', 'frame_type'
+  label     String // 'Màu sắc'
+  kind      AttributeKind
+  options   Json? // [{value:'brown', label:'Nâu'}] khi ENUM
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+enum AttributeKind {
+  STRING
+  ENUM
+  NUMBER
+  BOOLEAN
+}
+
+/// Notification trên dashboard (low-stock, dead-stock, transfer suggestion, ...).
+/// Không gửi qua messaging channel (ZNS/SMS) — chỉ UI hiển thị.
+model Notification {
+  id         BigInt               @id @default(autoincrement())
+  type       NotificationType
+  severity   NotificationSeverity @default(INFO)
+  title      String
+  body       String?
+  payload    Json?
+  targetRole UserRole? // null = mọi role
+  readBy     Int[]                @default([]) // user IDs đã mark read
+  createdAt  DateTime             @default(now())
+
+  @@index([targetRole, createdAt])
+  @@index([type, createdAt])
+}
+
+enum NotificationType {
+  LOW_STOCK
+  DEAD_STOCK
+  TRANSFER_SUGGESTION
+  INVENTORY_ALERT
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Category {
+  id         Int       @id @default(autoincrement())
+  externalId BigInt    @unique
+  name       String
+  parentId   Int?
+  parent     Category? @relation("CategoryTree", fields: [parentId], references: [id])
+
+  children Category[] @relation("CategoryTree")
+  products Product[]
+}
+
+// ===== Loyalty =====
+
+// 5 hạng doanh nghiệp, xét theo `lifetimePoints`:
+//   GUEST     <  MEMBER threshold  (chưa đạt hạng)
+//   MEMBER    ≥ 300 điểm   — Hội viên
+//   SILVER    ≥ 1,000 điểm — Bạc
+//   TITAN     ≥ 2,500 điểm — Titan
+//   GOLD      ≥ 5,000 điểm — Vàng
+//   PLATINUM  ≥ 10,000 điểm — Bạch kim
+enum LoyaltyTier {
+  GUEST
+  MEMBER
+  SILVER
+  TITAN
+  GOLD
+  PLATINUM
+}
+
+model LoyaltyAccount {
+  id             Int         @id @default(autoincrement())
+  customerId     Int         @unique
+  customer       Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  points         Int         @default(0) // balance — redeem giảm, dùng để đổi voucher
+  lifetimePoints Int         @default(0) // tổng đã kiếm, chỉ tăng → xét hạng
+  tier           LoyaltyTier @default(GUEST)
+  tierUpdatedAt  DateTime    @default(now())
+
+  transactions LoyaltyTransaction[]
+}
+
+model LoyaltyTransaction {
+  id        Int            @id @default(autoincrement())
+  accountId Int
+  account   LoyaltyAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  orderId   Int?
+  points    Int // có thể âm (redeem)
+  reason    String
+  createdAt DateTime       @default(now())
+
+  @@index([accountId, createdAt])
+}
+
+// ===== Messaging =====
+
+enum MessageChannel {
+  ZNS
+  SMS
+  ZALO_OA // placeholder — provider not implemented yet (48h session limit — plug in later)
+}
+
+enum MessageStatus {
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  RETRYING
+  FALLBACK
+}
+
+model MessageTemplate {
+  id                 Int            @id @default(autoincrement())
+  code               String         @unique
+  channel            MessageChannel
+  providerTemplateId String? // templateId Zalo đã duyệt
+  name               String
+  body               String // với {{placeholder}}
+  variables          Json // JSON schema biến
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  campaigns         Campaign[] @relation("CampaignTemplate")
+  campaignFallbacks Campaign[] @relation("CampaignFallbackTemplate")
+}
+
+model MessageLog {
+  id             BigInt             @id @default(autoincrement())
+  customerId     Int?
+  customer       Customer?          @relation(fields: [customerId], references: [id])
+  phone          String
+  channel        MessageChannel
+  templateCode   String?
+  payload        Json // biến đã bind
+  providerId     String? // id trả về từ provider
+  providerName   String? // tên provider thực tế dùng
+  status         MessageStatus      @default(QUEUED)
+  errorCode      String?
+  errorMessage   String?
+  attempts       Int                @default(0)
+  campaignExecId Int?
+  campaignExec   CampaignExecution? @relation(fields: [campaignExecId], references: [id])
+  queuedAt       DateTime           @default(now())
+  sentAt         DateTime?
+
+  @@index([customerId])
+  @@index([phone, queuedAt])
+  @@index([status])
+}
+
+// ===== Campaign & Automation =====
+
+enum CampaignType {
+  ONE_OFF
+  RECURRING
+  TRIGGERED
+}
+
+enum CampaignRunStatus {
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  EXECUTED
+  CANCELLED
+}
+
+model Campaign {
+  id                 Int              @id @default(autoincrement())
+  name               String
+  description        String?
+  type               CampaignType
+  ruleCode           String? // map rule class code
+  conditions         Json // segment/filter config
+  templateId         Int?
+  template           MessageTemplate? @relation("CampaignTemplate", fields: [templateId], references: [id])
+  fallbackTemplateId Int?
+  fallbackTemplate   MessageTemplate? @relation("CampaignFallbackTemplate", fields: [fallbackTemplateId], references: [id])
+  allowFallback      Boolean          @default(false) // cho phép fallback ZNS→SMS khi gửi
+  isActive           Boolean          @default(true)
+  schedule           String? // cron (nếu RECURRING)
+  // Approval workflow (T6)
+  // ONE_OFF: phải duyệt (service enforce true). TRIGGERED: không duyệt (service enforce false).
+  // RECURRING: tuỳ — true = mỗi cron tick tạo CampaignRun chờ duyệt, false = auto execute.
+  requiresApproval   Boolean          @default(true)
+  // Khi duyệt, chạy lại match để lấy danh sách fresh (thay vì dùng snapshot).
+  // Đánh đổi: manager không biết chính xác ai sẽ nhận tin. Bật cho campaign nhạy cảm.
+  refreshOnApprove   Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  runs       CampaignRun[]
+  executions CampaignExecution[]
+}
+
+/// Một lần kích hoạt campaign (manual run, cron tick, hoặc trigger event).
+/// ONE_OFF / RECURRING-with-approval: status bắt đầu PENDING_APPROVAL.
+/// RECURRING-auto / TRIGGERED: tạo thẳng với status EXECUTED sau khi enqueue.
+model CampaignRun {
+  id              Int               @id @default(autoincrement())
+  campaignId      Int
+  campaign        Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  status          CampaignRunStatus @default(PENDING_APPROVAL)
+  triggeredById   Int? // user bấm run (null = cron/trigger tự động)
+  matchedCount    Int               @default(0)
+  /// Snapshot list [{customerId, phone, variables}] tại thời điểm match.
+  /// Nếu refreshOnApprove=true, ignore khi enqueue và gọi rule.match lại.
+  snapshot        Json
+  approvedById    Int?
+  approvedAt      DateTime?
+  rejectedReason  String?
+  executedAt      DateTime?
+  enqueuedCount   Int               @default(0) // số message đã đẩy vào queue khi execute
+  note            String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  executions CampaignExecution[]
+
+  @@index([campaignId, createdAt])
+  @@index([status])
+}
+
+model CampaignExecution {
+  id            Int           @id @default(autoincrement())
+  campaignId    Int
+  campaign      Campaign      @relation(fields: [campaignId], references: [id])
+  campaignRunId Int?
+  campaignRun   CampaignRun?  @relation(fields: [campaignRunId], references: [id])
+  customerId    Int?
+  customer      Customer?     @relation(fields: [customerId], references: [id])
+  status        MessageStatus
+  executedAt    DateTime      @default(now())
+
+  messageLogs MessageLog[]
+
+  @@index([campaignId, executedAt])
+  @@index([campaignRunId])
+}
+
+// ===== Settings (DB-backed, override .env) =====
+
+/// Key-value lưu config runtime (KiotViet credential, webhook secret, …).
+/// `encrypted=true` → giá trị đã mã hóa ở application layer (xem SettingsService.encrypt).
+model Setting {
+  key         String   @id
+  value       String   @db.Text
+  encrypted   Boolean  @default(false)
+  description String?
+  updatedById Int?
+  updatedAt   DateTime @updatedAt
+}
+
+// ===== Sync cursor =====
+
+model SyncCursor {
+  id           Int       @id @default(autoincrement())
+  entity       String    @unique // customer | order | invoice | product | ...
+  lastSyncedAt DateTime?
+  lastRunAt    DateTime?
+  status       String? // success | failed | running | cancelled
+  note         String?
+  // Checkpoint per-page: khi run dở dang (fail/cancel), lần sau resume
+  // từ `checkpointOffset` với `since = checkpointSince`. Clear khi markSuccess.
+  checkpointSince  DateTime?
+  checkpointOffset Int       @default(0)
+}

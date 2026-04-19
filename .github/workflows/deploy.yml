@@ -1,0 +1,108 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # cho phép trigger thủ công từ Actions tab
+
+env:
+  REGISTRY: ghcr.io
+  API_IMAGE: ${{ github.repository }}/api
+  WEB_IMAGE: ${{ github.repository }}/web
+
+jobs:
+  # =====================================================================
+  # 1. Build multi-arch (amd64 + arm64) → push GHCR
+  # =====================================================================
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image tag (short SHA)
+        id: tag
+        run: echo "tag=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build + push API (amd64 + arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.API_IMAGE }}:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Build + push Web (amd64 + arm64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.WEB_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.WEB_IMAGE }}:${{ steps.tag.outputs.tag }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  # =====================================================================
+  # 2. SSH vào VM, pull image mới, restart container
+  # =====================================================================
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/mkbv-crm
+
+            # Pull code mới (compose files + scripts)
+            git pull origin main
+
+            # Login GHCR (nếu repo private — public thì có thể skip)
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull image mới + swap container (zero-downtime cho web; api có 5-10s downtime do migrate)
+            export IMAGE_TAG=${{ needs.build-push.outputs.image_tag }}
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml pull
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.deploy.yml up -d --remove-orphans
+
+            # Apply migrations (idempotent — chỉ chạy nếu có migration mới)
+            docker compose exec -T api npx prisma migrate deploy || true
+
+            # Cleanup image cũ
+            docker image prune -af --filter "until=24h"
+
+            # Smoke test
+            sleep 5
+            curl -f http://localhost:3000/api/v1/health || (echo "API health check failed" && exit 1)
+            echo "✓ Deploy OK · tag=${{ needs.build-push.outputs.image_tag }}"

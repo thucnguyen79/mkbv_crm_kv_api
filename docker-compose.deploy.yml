@@ -1,0 +1,24 @@
+# docker-compose.deploy.yml
+# Dùng trên server prod sau khi GitHub Actions push image lên GHCR.
+# Override `build:` của api/web thành `image:` từ ghcr.io.
+#
+# Use:
+#   IMAGE_TAG=<short-sha-or-latest> \
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.prod.yml \
+#                  -f docker-compose.deploy.yml pull
+#   docker compose ... up -d
+#
+# IMAGE_TAG=latest mặc định nếu không set.
+# GHCR_REPO mặc định = thucnguyen79/mkbv_crm_kv_api — đổi nếu fork.
+
+services:
+  api:
+    image: ghcr.io/${GHCR_REPO:-thucnguyen79/mkbv_crm_kv_api}/api:${IMAGE_TAG:-latest}
+    pull_policy: always
+    build: !reset {} # disable build, chỉ pull
+
+  web:
+    image: ghcr.io/${GHCR_REPO:-thucnguyen79/mkbv_crm_kv_api}/web:${IMAGE_TAG:-latest}
+    pull_policy: always
+    build: !reset {}
