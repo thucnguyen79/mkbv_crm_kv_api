@@ -76,8 +76,8 @@ export function UserFormDialog({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<UserFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(schema as any),
+    // eslint-disable-next-line
+    resolver: zodResolver(schema as never),
     defaultValues:
       initial ?? {
         email: '',
