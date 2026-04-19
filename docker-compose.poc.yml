@@ -40,7 +40,8 @@ services:
       - uploads:/app/uploads
 
   migrate:
-    image: node:20-alpine
+    # Debian (not alpine) — Prisma cần libssl3 chuẩn, alpine OpenSSL gây "Could not parse schema engine response"
+    image: node:20-bookworm-slim
     container_name: mkbv_migrate
     restart: 'no'
     depends_on:
@@ -55,6 +56,7 @@ services:
       - sh
       - -c
       - |
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends openssl ca-certificates >/dev/null && \
         npm install prisma@5.20.0 --no-save --silent && \
         npx prisma migrate deploy --schema=/prisma/schema.prisma
 
