@@ -5,9 +5,10 @@ import type { ProfilePayload, UserRole } from '@/types/auth';
 
 // Server-side: ưu tiên INTERNAL_API_URL (docker network) để tránh NAT loopback khi
 // public URL trỏ về cùng modem (vd POC trên local server với DDNS + port forward).
+// Dùng `||` để empty string từ build arg cũng coerce sang fallback.
 const BASE_URL =
-  process.env.INTERNAL_API_URL ??
-  process.env.NEXT_PUBLIC_API_URL ??
+  process.env.INTERNAL_API_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
   'http://localhost:3000/api/v1';
 
 interface TokenPair {

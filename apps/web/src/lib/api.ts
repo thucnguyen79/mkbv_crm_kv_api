@@ -3,7 +3,10 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { signOut, getSession } from 'next-auth/react';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
+// Fallback `/api/v1` (relative) cho phép browser tự resolve theo current host:port —
+// hoạt động đúng kể cả khi NEXT_PUBLIC_API_URL không set lúc build (CI build arg empty).
+// Dùng `||` thay `??` vì process.env có thể inline thành empty string khi var không set.
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 let cachedClient: AxiosInstance | null = null;
 
