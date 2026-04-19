@@ -1,0 +1,64 @@
+# docker-compose.poc.yml
+# POC override cho local server (3.3 GB RAM, single CPU). HTTP plain, no TLS.
+# Use:
+#   docker compose -f docker-compose.yml -f docker-compose.poc.yml -f docker-compose.deploy.yml up -d
+#
+# `docker-compose.deploy.yml` map image: ghcr.io thay vì build local (cần thiết với 1 vCPU).
+
+services:
+  postgres:
+    # Không expose ra host — tránh conflict với postgres local đang chạy 5432
+    ports: !reset []
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-crm}
+      POSTGRES_USER: ${POSTGRES_USER:-crm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Lower memory cho server yếu
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=50
+
+  redis:
+    ports: !reset []
+
+  api:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      UPLOAD_DIR: /app/uploads
+      # POC: chấp nhận origin chính nó (cùng port)
+      CORS_ORIGINS: http://${PUBLIC_HOST}:${PUBLIC_PORT}
+    volumes:
+      - uploads:/app/uploads
+
+  web:
+    restart: unless-stopped
+    ports: !reset []
+    environment:
+      # NEXTAUTH_URL phải khớp domain user truy cập
+      NEXTAUTH_URL: http://${PUBLIC_HOST}:${PUBLIC_PORT}
+      NEXT_PUBLIC_API_URL: http://${PUBLIC_HOST}:${PUBLIC_PORT}/api/v1
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: mkbv_caddy
+    restart: unless-stopped
+    ports:
+      - '80:80' # Internal port. Modem forward ${PUBLIC_PORT} → host 80
+    volumes:
+      - ./deploy/poc/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+
+volumes:
+  uploads:
+  caddy_data:
+  caddy_config:

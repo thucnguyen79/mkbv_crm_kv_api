@@ -1,0 +1,38 @@
+# Caddyfile cho POC — HTTP plain (không TLS), path-based routing trên single port.
+# Ngoài internet truy cập http://mkmsg.ddns.net:60080
+# Modem forward 60080 → VM:80 → Caddy listen :80 → proxy theo path
+
+:80 {
+	# Log mọi request ra stdout
+	log {
+		output stdout
+		format console
+	}
+
+	# === API NestJS ===
+	# Note: NextAuth dùng /api/auth/* nội bộ trong Next.js → KHÔNG proxy về api container
+	@nextauth path /api/auth/*
+	handle @nextauth {
+		reverse_proxy web:3001
+	}
+
+	# Mọi /api/* khác → backend NestJS
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	# Static uploads (ảnh SP) → API
+	handle /uploads/* {
+		reverse_proxy api:3000
+	}
+
+	# Còn lại → Next.js dashboard
+	handle {
+		reverse_proxy web:3001
+	}
+
+	# Cho phép upload tới 10MB (ảnh SP)
+	request_body {
+		max_size 10MB
+	}
+}
