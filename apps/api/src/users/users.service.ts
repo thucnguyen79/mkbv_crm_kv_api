@@ -8,18 +8,9 @@ import {
 import { Prisma, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../common/prisma/prisma.service';
-import {
-  Paginated,
-  paginate,
-  PaginationQueryDto,
-} from '../common/pagination/pagination.dto';
+import { Paginated, paginate, PaginationQueryDto } from '../common/pagination/pagination.dto';
 import { AuthService } from '../auth/auth.service';
-import {
-  CreateUserDto,
-  ResetPasswordDto,
-  UpdateUserDto,
-  UserResponseDto,
-} from './dto/user.dto';
+import { CreateUserDto, ResetPasswordDto, UpdateUserDto, UserResponseDto } from './dto/user.dto';
 
 type UserWithRel = Prisma.UserGetPayload<{
   include: {

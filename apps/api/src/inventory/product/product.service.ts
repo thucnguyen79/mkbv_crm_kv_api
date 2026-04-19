@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import {
-  Paginated,
-  paginate,
-} from '../../common/pagination/pagination.dto';
+import { Paginated, paginate } from '../../common/pagination/pagination.dto';
 import { AppConfig } from '../../config/app.config';
 import { agingDays } from '../velocity/velocity.util';
 import { QueryProductDto, UpdateProductCrmDto } from './dto/product.dto';
@@ -65,9 +62,7 @@ export class ProductService {
           category: { select: { id: true, name: true } },
           variantGroup: { select: { id: true, name: true } },
           images: { orderBy: { order: 'asc' }, take: 1 },
-          stocks: query.branchId
-            ? { where: { branchId: query.branchId }, take: 1 }
-            : true,
+          stocks: query.branchId ? { where: { branchId: query.branchId }, take: 1 } : true,
         },
         orderBy: { id: 'desc' },
         skip: query.skip,
@@ -176,9 +171,7 @@ function toListResponse(p: ProductListRow) {
     variantGroup: p.variantGroup,
     minStock: p.minStock,
     isTracked: p.isTracked,
-    primaryImage: p.images[0]
-      ? { url: p.images[0].url, caption: p.images[0].caption }
-      : null,
+    primaryImage: p.images[0] ? { url: p.images[0].url, caption: p.images[0].caption } : null,
     totalOnHand: p.stocks.reduce((acc, s) => acc + s.onHand, 0),
     stockAtBranch,
   };

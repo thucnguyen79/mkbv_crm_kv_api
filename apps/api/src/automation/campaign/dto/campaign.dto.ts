@@ -67,8 +67,7 @@ export class CreateCampaignDto {
   schedule?: string;
 
   @ApiPropertyOptional({
-    description:
-      'ONE_OFF luôn là true, TRIGGERED luôn là false, RECURRING tuỳ (default true).',
+    description: 'ONE_OFF luôn là true, TRIGGERED luôn là false, RECURRING tuỳ (default true).',
     default: true,
   })
   @IsOptional()

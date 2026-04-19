@@ -13,11 +13,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PrismaService } from '../common/prisma/prisma.service';
-import {
-  CreateRoleDto,
-  SetRolePermissionsDto,
-  UpdateRoleDto,
-} from './dto/role.dto';
+import { CreateRoleDto, SetRolePermissionsDto, UpdateRoleDto } from './dto/role.dto';
 import { RolesService } from './roles.service';
 
 @ApiTags('roles')
@@ -64,10 +60,7 @@ export class RolesController {
   @Put(':id/permissions')
   @Permissions('role.write')
   @ApiOperation({ summary: 'Set toàn bộ permission cho role (replace)' })
-  setPermissions(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: SetRolePermissionsDto,
-  ) {
+  setPermissions(@Param('id', ParseIntPipe) id: number, @Body() dto: SetRolePermissionsDto) {
     return this.service.setPermissions(id, dto);
   }
 }

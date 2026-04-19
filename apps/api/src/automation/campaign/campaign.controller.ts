@@ -17,11 +17,7 @@ import type { Request } from 'express';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { AutomationService } from '../automation.service';
 import { CampaignService } from './campaign.service';
-import {
-  CreateCampaignDto,
-  QueryCampaignDto,
-  UpdateCampaignDto,
-} from './dto/campaign.dto';
+import { CreateCampaignDto, QueryCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
 
 @ApiTags('campaigns')
 @ApiBearerAuth()

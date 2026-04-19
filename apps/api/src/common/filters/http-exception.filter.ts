@@ -41,8 +41,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const r = resp as { message?: unknown; error?: string; code?: string };
         message = Array.isArray(r.message)
           ? (r.message[0] as string)
-          : (r.message as string) ?? exception.message;
-        code = (r.code ?? r.error ?? exception.name.replace('Exception', '')).toString().toUpperCase();
+          : ((r.message as string) ?? exception.message);
+        code = (r.code ?? r.error ?? exception.name.replace('Exception', ''))
+          .toString()
+          .toUpperCase();
         details = Array.isArray(r.message) ? r.message : undefined;
       }
     } else if (exception instanceof Error) {

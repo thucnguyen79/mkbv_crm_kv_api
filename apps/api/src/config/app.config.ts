@@ -17,7 +17,10 @@ export class AppConfig {
   }
 
   get corsOrigins(): string[] {
-    return this.cfg.getOrThrow<string>('CORS_ORIGINS').split(',').map((s) => s.trim());
+    return this.cfg
+      .getOrThrow<string>('CORS_ORIGINS')
+      .split(',')
+      .map((s) => s.trim());
   }
 
   get databaseUrl(): string {

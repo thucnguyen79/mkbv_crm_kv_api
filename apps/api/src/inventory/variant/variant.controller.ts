@@ -85,10 +85,7 @@ export class VariantGroupController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @HttpCode(200)
   @ApiOperation({ summary: 'Gán SP vào group' })
-  async attach(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: AttachProductsBody,
-  ) {
+  async attach(@Param('id', ParseIntPipe) id: number, @Body() body: AttachProductsBody) {
     await this.service.addProducts(id, body.productIds);
     return { ok: true };
   }
@@ -97,10 +94,7 @@ export class VariantGroupController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @HttpCode(200)
   @ApiOperation({ summary: 'Gỡ SP khỏi group' })
-  async detach(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() body: AttachProductsBody,
-  ) {
+  async detach(@Param('id', ParseIntPipe) id: number, @Body() body: AttachProductsBody) {
     await this.service.removeProducts(id, body.productIds);
     return { ok: true };
   }

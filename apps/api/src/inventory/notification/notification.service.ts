@@ -7,11 +7,7 @@ import {
   UserRole,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import {
-  Paginated,
-  paginate,
-  PaginationQueryDto,
-} from '../../common/pagination/pagination.dto';
+import { Paginated, paginate, PaginationQueryDto } from '../../common/pagination/pagination.dto';
 
 export interface CreateNotificationInput {
   type: NotificationType;

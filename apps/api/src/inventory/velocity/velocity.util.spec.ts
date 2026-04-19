@@ -1,47 +1,43 @@
 import { VelocityTag } from '@prisma/client';
-import {
-  agingDays,
-  computeReorderPoint,
-  computeVelocityTag,
-} from './velocity.util';
+import { agingDays, computeReorderPoint, computeVelocityTag } from './velocity.util';
 
 const t = { fastMoverDaily: 1, slowMoverDaily: 0.1, deadAgingDays: 60 };
 
 describe('computeVelocityTag', () => {
   it('DEAD when no sales + has stock + aging > threshold', () => {
-    expect(
-      computeVelocityTag({ velocity30d: 0, onHand: 5, agingDays: 90 }, t),
-    ).toBe(VelocityTag.DEAD);
+    expect(computeVelocityTag({ velocity30d: 0, onHand: 5, agingDays: 90 }, t)).toBe(
+      VelocityTag.DEAD,
+    );
   });
 
   it('NOT DEAD when aging within threshold', () => {
-    expect(
-      computeVelocityTag({ velocity30d: 0, onHand: 5, agingDays: 30 }, t),
-    ).toBe(VelocityTag.SLOW_MOVER);
+    expect(computeVelocityTag({ velocity30d: 0, onHand: 5, agingDays: 30 }, t)).toBe(
+      VelocityTag.SLOW_MOVER,
+    );
   });
 
   it('NOT DEAD when onHand = 0 (no stock to clear)', () => {
-    expect(
-      computeVelocityTag({ velocity30d: 0, onHand: 0, agingDays: 999 }, t),
-    ).toBe(VelocityTag.SLOW_MOVER);
+    expect(computeVelocityTag({ velocity30d: 0, onHand: 0, agingDays: 999 }, t)).toBe(
+      VelocityTag.SLOW_MOVER,
+    );
   });
 
   it('FAST_MOVER when velocity > threshold', () => {
-    expect(
-      computeVelocityTag({ velocity30d: 2.5, onHand: 100, agingDays: 5 }, t),
-    ).toBe(VelocityTag.FAST_MOVER);
+    expect(computeVelocityTag({ velocity30d: 2.5, onHand: 100, agingDays: 5 }, t)).toBe(
+      VelocityTag.FAST_MOVER,
+    );
   });
 
   it('SLOW_MOVER when below slow threshold but still some sales', () => {
-    expect(
-      computeVelocityTag({ velocity30d: 0.05, onHand: 20, agingDays: 10 }, t),
-    ).toBe(VelocityTag.SLOW_MOVER);
+    expect(computeVelocityTag({ velocity30d: 0.05, onHand: 20, agingDays: 10 }, t)).toBe(
+      VelocityTag.SLOW_MOVER,
+    );
   });
 
   it('NORMAL in between', () => {
-    expect(
-      computeVelocityTag({ velocity30d: 0.5, onHand: 20, agingDays: 10 }, t),
-    ).toBe(VelocityTag.NORMAL);
+    expect(computeVelocityTag({ velocity30d: 0.5, onHand: 20, agingDays: 10 }, t)).toBe(
+      VelocityTag.NORMAL,
+    );
   });
 });
 

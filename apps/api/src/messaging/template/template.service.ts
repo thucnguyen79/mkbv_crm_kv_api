@@ -6,11 +6,7 @@ import {
 } from '@nestjs/common';
 import { MessageTemplate, Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import {
-  CreateTemplateDto,
-  TemplateResponseDto,
-  UpdateTemplateDto,
-} from '../dto/template.dto';
+import { CreateTemplateDto, TemplateResponseDto, UpdateTemplateDto } from '../dto/template.dto';
 import { extractVariables } from './template.util';
 
 @Injectable()
@@ -58,8 +54,10 @@ export class TemplateService {
     if (dto.channel !== undefined) data.channel = dto.channel;
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.body !== undefined) data.body = dto.body;
-    if (dto.providerTemplateId !== undefined) data.providerTemplateId = dto.providerTemplateId ?? null;
-    if (dto.variables !== undefined) data.variables = (dto.variables ?? {}) as Prisma.InputJsonValue;
+    if (dto.providerTemplateId !== undefined)
+      data.providerTemplateId = dto.providerTemplateId ?? null;
+    if (dto.variables !== undefined)
+      data.variables = (dto.variables ?? {}) as Prisma.InputJsonValue;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
 
     try {

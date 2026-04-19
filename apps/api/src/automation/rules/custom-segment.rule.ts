@@ -70,8 +70,10 @@ export class CustomSegmentRule implements AutomationRule {
     if (cond.tier) where.loyalty = { is: { tier: cond.tier } };
     if (cond.minSpent !== undefined || cond.maxSpent !== undefined) {
       where.totalSpent = {};
-      if (cond.minSpent !== undefined) (where.totalSpent as Prisma.DecimalFilter).gte = cond.minSpent;
-      if (cond.maxSpent !== undefined) (where.totalSpent as Prisma.DecimalFilter).lte = cond.maxSpent;
+      if (cond.minSpent !== undefined)
+        (where.totalSpent as Prisma.DecimalFilter).gte = cond.minSpent;
+      if (cond.maxSpent !== undefined)
+        (where.totalSpent as Prisma.DecimalFilter).lte = cond.maxSpent;
     }
     if (cond.productIds?.length) {
       const orderFilter: Prisma.OrderWhereInput = {

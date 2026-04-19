@@ -14,11 +14,7 @@ import { ZaloOaStubProvider } from './zalo-oa-stub.provider';
 export class ProviderFactory {
   private readonly map: Map<MessageChannel, MessageProvider>;
 
-  constructor(
-    zns: ZnsStubProvider,
-    sms: SmsStubProvider,
-    zaloOa: ZaloOaStubProvider,
-  ) {
+  constructor(zns: ZnsStubProvider, sms: SmsStubProvider, zaloOa: ZaloOaStubProvider) {
     this.map = new Map<MessageChannel, MessageProvider>([
       [MessageChannel.ZNS, zns],
       [MessageChannel.SMS, sms],

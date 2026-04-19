@@ -2,12 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { LoyaltyAccount, LoyaltyTier } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { AppConfig } from '../config/app.config';
-import {
-  computePoints,
-  computeTier,
-  isTierUpgrade,
-  TierThresholds,
-} from './tier.config';
+import { computePoints, computeTier, isTierUpgrade, TierThresholds } from './tier.config';
 
 export interface LoyaltyStatus {
   customerId: number;
@@ -64,8 +59,7 @@ export class LoyaltyService {
     const lifetimePoints = Math.max(prev?.lifetimePoints ?? 0, newLifetime);
     // Balance: nếu chưa có ledger redeem, trùng lifetime.
     const points = lifetimePoints;
-    const tierUpdatedAt =
-      prev?.tier !== newTier ? new Date() : (prev?.tierUpdatedAt ?? new Date());
+    const tierUpdatedAt = prev?.tier !== newTier ? new Date() : (prev?.tierUpdatedAt ?? new Date());
 
     const saved: LoyaltyAccount = await this.prisma.loyaltyAccount.upsert({
       where: { customerId },

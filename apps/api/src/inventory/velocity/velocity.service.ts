@@ -2,11 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AppConfig } from '../../config/app.config';
-import {
-  agingDays,
-  computeReorderPoint,
-  computeVelocityTag,
-} from './velocity.util';
+import { agingDays, computeReorderPoint, computeVelocityTag } from './velocity.util';
 
 interface OrderItemAgg {
   productId: number;

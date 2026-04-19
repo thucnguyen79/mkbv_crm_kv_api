@@ -32,7 +32,10 @@ export class OrderService {
     return toResponse(row);
   }
 
-  async listForCustomer(customerId: number, query: QueryOrderDto): Promise<Paginated<OrderResponseDto>> {
+  async listForCustomer(
+    customerId: number,
+    query: QueryOrderDto,
+  ): Promise<Paginated<OrderResponseDto>> {
     return this.list({ ...query, customerId } as QueryOrderDto);
   }
 

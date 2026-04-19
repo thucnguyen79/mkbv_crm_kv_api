@@ -1,10 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { MessageChannel } from '@prisma/client';
-import {
-  MessageProvider,
-  SendMessageInput,
-  SendMessageResult,
-} from './message-provider.interface';
+import { MessageProvider, SendMessageInput, SendMessageResult } from './message-provider.interface';
 
 /** Log-only SMS provider. Thay bằng ESMS / Stringee / VNPT-SMS khi triển khai thật. */
 @Injectable()

@@ -36,19 +36,11 @@ export class KiotVietHttpService {
     return this.request<T>({ method: 'GET', url: path, params, signal: opts?.signal });
   }
 
-  async post<T>(
-    path: string,
-    body?: unknown,
-    opts?: { signal?: AbortSignal },
-  ): Promise<T> {
+  async post<T>(path: string, body?: unknown, opts?: { signal?: AbortSignal }): Promise<T> {
     return this.request<T>({ method: 'POST', url: path, data: body, signal: opts?.signal });
   }
 
-  async put<T>(
-    path: string,
-    body?: unknown,
-    opts?: { signal?: AbortSignal },
-  ): Promise<T> {
+  async put<T>(path: string, body?: unknown, opts?: { signal?: AbortSignal }): Promise<T> {
     return this.request<T>({ method: 'PUT', url: path, data: body, signal: opts?.signal });
   }
 

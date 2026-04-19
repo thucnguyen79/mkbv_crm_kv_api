@@ -31,7 +31,13 @@ describe('CustomSegmentRule', () => {
       },
       customer: {
         findMany: jest.fn().mockResolvedValue([
-          { id: 1, phone: '0901', name: 'An', totalSpent: 3_000_000, loyalty: { tier: LoyaltyTier.GOLD, lifetimePoints: 500 } },
+          {
+            id: 1,
+            phone: '0901',
+            name: 'An',
+            totalSpent: 3_000_000,
+            loyalty: { tier: LoyaltyTier.GOLD, lifetimePoints: 500 },
+          },
         ]),
       },
     };

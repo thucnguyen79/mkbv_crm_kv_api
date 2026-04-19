@@ -1,10 +1,6 @@
 import { Injectable, NotImplementedException } from '@nestjs/common';
 import { MessageChannel } from '@prisma/client';
-import {
-  MessageProvider,
-  SendMessageInput,
-  SendMessageResult,
-} from './message-provider.interface';
+import { MessageProvider, SendMessageInput, SendMessageResult } from './message-provider.interface';
 
 /**
  * Placeholder cho Zalo OA (tin chăm sóc OA, 48h session rule).

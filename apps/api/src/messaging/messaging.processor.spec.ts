@@ -58,7 +58,11 @@ function makePrismaMock(log: FakeLog) {
   };
 }
 
-function makeJob(data: Partial<MessagingJobData> = {}, attemptsMade = 0, attempts = 3): Job<MessagingJobData> {
+function makeJob(
+  data: Partial<MessagingJobData> = {},
+  attemptsMade = 0,
+  attempts = 3,
+): Job<MessagingJobData> {
   return {
     data: {
       logId: '1',
@@ -77,14 +81,18 @@ describe('MessagingProcessor', () => {
     const log = makeFakeLog();
     const prisma = makePrismaMock(log);
     const sendSpy = jest.fn().mockResolvedValue({ providerId: 'pid-1', providerName: 'zns-stub' });
-    const factory = { get: jest.fn().mockReturnValue({ send: sendSpy }) } as unknown as ProviderFactory;
+    const factory = {
+      get: jest.fn().mockReturnValue({ send: sendSpy }),
+    } as unknown as ProviderFactory;
     const templates = {} as never;
     const messaging = {} as unknown as MessagingService;
 
     const proc = new MessagingProcessor(prisma as never, factory, templates, messaging);
     await proc.process(makeJob());
 
-    expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ phone: '0912345678', body: 'Chào An' }));
+    expect(sendSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: '0912345678', body: 'Chào An' }),
+    );
     expect(log.status).toBe(MessageStatus.SENT);
     expect(log.providerId).toBe('pid-1');
     expect(log.providerName).toBe('zns-stub');
@@ -120,13 +128,11 @@ describe('MessagingProcessor', () => {
     const log = makeFakeLog();
     const prisma = makePrismaMock(log);
     const factory = {
-      get: jest
-        .fn()
-        .mockReturnValue({
-          send: jest
-            .fn()
-            .mockRejectedValue(new ProviderFallbackError('TEMPLATE_REJECTED', 'rejected')),
-        }),
+      get: jest.fn().mockReturnValue({
+        send: jest
+          .fn()
+          .mockRejectedValue(new ProviderFallbackError('TEMPLATE_REJECTED', 'rejected')),
+      }),
     } as unknown as ProviderFactory;
     const templateLoad = jest.fn().mockResolvedValue({
       code: 'SMS_REACTIVATE_30D',
@@ -142,9 +148,7 @@ describe('MessagingProcessor', () => {
     log.payload = { body: 'Chào An', variables: { name: 'An' } };
 
     await expect(
-      proc.process(
-        makeJob({ allowFallback: true, fallbackTemplateCode: 'SMS_REACTIVATE_30D' }),
-      ),
+      proc.process(makeJob({ allowFallback: true, fallbackTemplateCode: 'SMS_REACTIVATE_30D' })),
     ).resolves.toBeUndefined();
 
     expect(log.status).toBe(MessageStatus.FALLBACK);
@@ -161,11 +165,9 @@ describe('MessagingProcessor', () => {
     const log = makeFakeLog();
     const prisma = makePrismaMock(log);
     const factory = {
-      get: jest
-        .fn()
-        .mockReturnValue({
-          send: jest.fn().mockRejectedValue(new ProviderFallbackError('X', 'x')),
-        }),
+      get: jest.fn().mockReturnValue({
+        send: jest.fn().mockRejectedValue(new ProviderFallbackError('X', 'x')),
+      }),
     } as unknown as ProviderFactory;
     const proc = new MessagingProcessor(prisma as never, factory, {} as never, {} as never);
 

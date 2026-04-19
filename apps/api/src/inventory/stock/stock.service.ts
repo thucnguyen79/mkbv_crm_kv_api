@@ -105,9 +105,7 @@ export class StockService {
     }));
 
     if (filters.belowMin) {
-      mapped = mapped.filter(
-        (r) => r.minStock !== null && r.onHand < r.minStock,
-      );
+      mapped = mapped.filter((r) => r.minStock !== null && r.onHand < r.minStock);
     }
     return { rows: mapped, total };
   }
@@ -144,8 +142,7 @@ export class StockService {
 
   async deadStock(agingDaysGte?: number): Promise<StockRow[]> {
     const cutoff = new Date(
-      Date.now() -
-        (agingDaysGte ?? this.cfg.inventory.deadAgingDays) * 86_400_000,
+      Date.now() - (agingDaysGte ?? this.cfg.inventory.deadAgingDays) * 86_400_000,
     );
     const rows = await this.prisma.productStock.findMany({
       where: {
@@ -272,8 +269,8 @@ export class StockService {
     for (const [, list] of byProduct) {
       if (list.length < 2) continue;
 
-      const surplus: Array<typeof list[number] & { spare: number }> = [];
-      const deficit: Array<typeof list[number] & { need: number }> = [];
+      const surplus: Array<(typeof list)[number] & { spare: number }> = [];
+      const deficit: Array<(typeof list)[number] & { need: number }> = [];
       for (const s of list) {
         const rp = s.reorderPoint ?? s.product.minStock ?? 0;
         if (rp === 0) continue;

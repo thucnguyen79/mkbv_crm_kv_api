@@ -45,7 +45,8 @@ export class AttributeService {
         code: dto.code,
         label: dto.label,
         kind: dto.kind,
-        options: dto.options === undefined ? undefined : ((dto.options ?? null) as Prisma.InputJsonValue),
+        options:
+          dto.options === undefined ? undefined : ((dto.options ?? null) as Prisma.InputJsonValue),
         isActive: dto.isActive,
       },
     });

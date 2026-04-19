@@ -1,13 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { MessageChannel } from '@prisma/client';
-import {
-  IsBoolean,
-  IsEnum,
-  IsOptional,
-  IsString,
-  Length,
-  MaxLength,
-} from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, Length, MaxLength } from 'class-validator';
 
 export class CreateTemplateDto {
   @ApiProperty({ example: 'ZNS_REACTIVATE_30D' })

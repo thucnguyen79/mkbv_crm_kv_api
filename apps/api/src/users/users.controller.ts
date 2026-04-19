@@ -16,11 +16,7 @@ import { IsOptional, IsString } from 'class-validator';
 import type { Request } from 'express';
 import { Permissions } from '../auth/permissions/permissions.decorator';
 import { PaginationQueryDto } from '../common/pagination/pagination.dto';
-import {
-  CreateUserDto,
-  ResetPasswordDto,
-  UpdateUserDto,
-} from './dto/user.dto';
+import { CreateUserDto, ResetPasswordDto, UpdateUserDto } from './dto/user.dto';
 import { UsersService } from './users.service';
 
 class QueryUserDto extends PaginationQueryDto {
@@ -60,11 +56,7 @@ export class UsersController {
 
   @Patch(':id')
   @Permissions('user.write')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateUserDto,
-    @Req() req: Request,
-  ) {
+  update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto, @Req() req: Request) {
     return this.service.update(id, dto, actorId(req));
   }
 

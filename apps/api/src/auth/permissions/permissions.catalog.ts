@@ -22,8 +22,18 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: 'product.write', resource: 'product', action: 'write', group: 'Sản phẩm' },
   // Stock
   { code: 'stock.read', resource: 'stock', action: 'read', group: 'Tồn kho' },
-  { code: 'stock.transfer_suggest', resource: 'stock', action: 'transfer_suggest', group: 'Tồn kho' },
-  { code: 'stock.velocity_recompute', resource: 'stock', action: 'velocity_recompute', group: 'Tồn kho' },
+  {
+    code: 'stock.transfer_suggest',
+    resource: 'stock',
+    action: 'transfer_suggest',
+    group: 'Tồn kho',
+  },
+  {
+    code: 'stock.velocity_recompute',
+    resource: 'stock',
+    action: 'velocity_recompute',
+    group: 'Tồn kho',
+  },
   // Variant group
   { code: 'variant_group.read', resource: 'variant_group', action: 'read', group: 'Biến thể' },
   { code: 'variant_group.write', resource: 'variant_group', action: 'write', group: 'Biến thể' },
@@ -46,9 +56,24 @@ export const PERMISSIONS: PermissionDef[] = [
   { code: 'campaign.dry_run', resource: 'campaign', action: 'dry_run', group: 'Campaign' },
   // Campaign run / approval
   { code: 'campaign_run.read', resource: 'campaign_run', action: 'read', group: 'Duyệt campaign' },
-  { code: 'campaign_run.approve', resource: 'campaign_run', action: 'approve', group: 'Duyệt campaign' },
-  { code: 'campaign_run.reject', resource: 'campaign_run', action: 'reject', group: 'Duyệt campaign' },
-  { code: 'campaign_run.cancel', resource: 'campaign_run', action: 'cancel', group: 'Duyệt campaign' },
+  {
+    code: 'campaign_run.approve',
+    resource: 'campaign_run',
+    action: 'approve',
+    group: 'Duyệt campaign',
+  },
+  {
+    code: 'campaign_run.reject',
+    resource: 'campaign_run',
+    action: 'reject',
+    group: 'Duyệt campaign',
+  },
+  {
+    code: 'campaign_run.cancel',
+    resource: 'campaign_run',
+    action: 'cancel',
+    group: 'Duyệt campaign',
+  },
   // Automation
   { code: 'automation.read', resource: 'automation', action: 'read', group: 'Automation' },
   // Sync

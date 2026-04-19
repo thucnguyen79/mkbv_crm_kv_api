@@ -27,10 +27,12 @@ export class InactiveCustomerRule implements AutomationRule {
     const days = Number(cond.inactiveDays ?? 30);
     const cooldown = Number(cond.cooldownDays ?? 14);
     const limit = Number(cond.limit ?? 500);
-    const templateCode = (await this.prisma.campaign.findUnique({
-      where: { id: ctx.campaign.id },
-      include: { template: { select: { code: true } } },
-    }))?.template?.code;
+    const templateCode = (
+      await this.prisma.campaign.findUnique({
+        where: { id: ctx.campaign.id },
+        include: { template: { select: { code: true } } },
+      })
+    )?.template?.code;
 
     const where: Prisma.CustomerWhereInput = {
       lastPurchaseAt: { lt: subDays(ctx.now, days), not: null },

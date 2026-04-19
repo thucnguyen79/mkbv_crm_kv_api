@@ -1,12 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import {
-  Campaign,
-  CampaignRunStatus,
-  CampaignType,
-  MessageStatus,
-  Prisma,
-} from '@prisma/client';
+import { Campaign, CampaignRunStatus, CampaignType, MessageStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { MessagingService } from '../messaging/messaging.service';
 import { TemplateService } from '../messaging/template/template.service';
@@ -85,8 +79,7 @@ export class AutomationService {
     });
 
     // TRIGGERED không dùng approval — enforce ở service (schema cho phép nhưng ignore).
-    const skipApproval =
-      campaign.type === CampaignType.TRIGGERED || !campaign.requiresApproval;
+    const skipApproval = campaign.type === CampaignType.TRIGGERED || !campaign.requiresApproval;
 
     const run = await this.prisma.campaignRun.create({
       data: {
@@ -186,16 +179,20 @@ export class AutomationService {
     if (campaign.refreshOnApprove) {
       const rule = this.rules.get(campaign.ruleCode!);
       matches = await rule.match({ campaign, now: new Date() });
-      this.logger.log(`run=${runId} refreshed: ${matches.length} matches (was ${run.matchedCount})`);
+      this.logger.log(
+        `run=${runId} refreshed: ${matches.length} matches (was ${run.matchedCount})`,
+      );
     }
 
     const template = await this.templates.loadActiveByCode(
       (await this.prisma.messageTemplate.findUnique({ where: { id: campaign.templateId } }))!.code,
     );
     const fallbackTemplateCode = campaign.fallbackTemplateId
-      ? (await this.prisma.messageTemplate.findUnique({
-          where: { id: campaign.fallbackTemplateId },
-        }))?.code ?? null
+      ? ((
+          await this.prisma.messageTemplate.findUnique({
+            where: { id: campaign.fallbackTemplateId },
+          })
+        )?.code ?? null)
       : null;
 
     let enqueued = 0;

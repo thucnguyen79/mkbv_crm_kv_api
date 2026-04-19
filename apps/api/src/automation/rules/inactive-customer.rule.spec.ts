@@ -8,7 +8,10 @@ describe('InactiveCustomerRule', () => {
     return new InactiveCustomerRule(prismaMock as never);
   }
 
-  function buildCampaign(conditions: Record<string, unknown>, templateCode = 'ZNS_REACTIVATE'): Campaign {
+  function buildCampaign(
+    conditions: Record<string, unknown>,
+    templateCode = 'ZNS_REACTIVATE',
+  ): Campaign {
     return {
       id: 1,
       name: 'x',

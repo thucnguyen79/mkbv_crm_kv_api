@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { MessageChannel, UserRole } from '@prisma/client';
 import { IsOptional, IsString, Length } from 'class-validator';
@@ -61,11 +53,7 @@ export class SettingsController {
   @Roles(UserRole.ADMIN)
   @HttpCode(200)
   @ApiOperation({ summary: 'Cập nhật 1 setting theo key' })
-  async set(
-    @Param('key') key: string,
-    @Body() dto: SetValueDto,
-    @Req() req: Request,
-  ) {
+  async set(@Param('key') key: string, @Body() dto: SetValueDto, @Req() req: Request) {
     const knownKeys = Object.values(SETTING_KEYS);
     if (!knownKeys.includes(key as (typeof knownKeys)[number])) {
       return { ok: false, error: 'Unknown setting key' };
@@ -126,8 +114,7 @@ export class SettingsController {
   @Roles(UserRole.ADMIN)
   @HttpCode(200)
   @ApiOperation({
-    summary:
-      'Self-ping webhook với HMAC sign → xác minh webhookSecret + endpoint phản hồi 200',
+    summary: 'Self-ping webhook với HMAC sign → xác minh webhookSecret + endpoint phản hồi 200',
   })
   async testKiotVietWebhook() {
     const cfg = this.settings.getKiotVietConfig();
@@ -141,10 +128,7 @@ export class SettingsController {
       Notifications: [],
     };
     const rawBody = JSON.stringify(payload);
-    const signature = crypto
-      .createHmac('sha256', cfg.webhookSecret)
-      .update(rawBody)
-      .digest('hex');
+    const signature = crypto.createHmac('sha256', cfg.webhookSecret).update(rawBody).digest('hex');
 
     const url = `http://localhost:${this.cfg.apiPort}/api/v1/webhooks/kiotviet`;
     try {
@@ -204,8 +188,7 @@ export class SettingsController {
   private async sendProviderTest(channel: MessageChannel, dto: TestMessageDto) {
     const phone = normalizePhone(dto.phone) ?? dto.phone;
     const body =
-      dto.body ??
-      `[TEST ${channel}] MKBV CRM ping lúc ${new Date().toLocaleString('vi-VN')}`;
+      dto.body ?? `[TEST ${channel}] MKBV CRM ping lúc ${new Date().toLocaleString('vi-VN')}`;
     try {
       const provider = this.providerFactory.get(channel);
       const result = await provider.send({

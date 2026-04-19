@@ -22,18 +22,10 @@ export interface VelocityThresholds {
  * Lưu ý: SP chưa có tồn kho (onHand === 0) không được đánh DEAD — chỉ đánh
  * FAST/SLOW/NORMAL theo velocity. DEAD phục vụ "xả hàng ế" → cần có hàng tồn.
  */
-export function computeVelocityTag(
-  input: VelocityTagInput,
-  t: VelocityThresholds,
-): VelocityTag {
+export function computeVelocityTag(input: VelocityTagInput, t: VelocityThresholds): VelocityTag {
   const { velocity30d, onHand, agingDays } = input;
 
-  if (
-    velocity30d === 0 &&
-    onHand > 0 &&
-    agingDays !== null &&
-    agingDays > t.deadAgingDays
-  ) {
+  if (velocity30d === 0 && onHand > 0 && agingDays !== null && agingDays > t.deadAgingDays) {
     return VelocityTag.DEAD;
   }
   if (velocity30d > t.fastMoverDaily) return VelocityTag.FAST_MOVER;

@@ -4,11 +4,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { Paginated, paginate } from '../common/pagination/pagination.dto';
 import { normalizePhone } from '../integration/sync/phone.util';
 import { QueryCustomerDto } from './dto/query-customer.dto';
-import {
-  CreateCustomerDto,
-  CustomerResponseDto,
-  UpdateCustomerDto,
-} from './dto/customer.dto';
+import { CreateCustomerDto, CustomerResponseDto, UpdateCustomerDto } from './dto/customer.dto';
 
 type CustomerWithLoyalty = Customer & { loyalty: LoyaltyAccount | null };
 
@@ -49,7 +45,9 @@ export class CustomerService {
       select: { id: true },
     });
     if (existing) {
-      throw new BadRequestException(`Customer with phone ${phone} already exists (id=${existing.id})`);
+      throw new BadRequestException(
+        `Customer with phone ${phone} already exists (id=${existing.id})`,
+      );
     }
 
     const row = await this.prisma.customer.create({
@@ -80,7 +78,8 @@ export class CustomerService {
     }
     if (dto.email !== undefined) data.email = dto.email?.toLowerCase() ?? null;
     if (dto.gender !== undefined) data.gender = dto.gender;
-    if (dto.birthDate !== undefined) data.birthDate = dto.birthDate ? new Date(dto.birthDate) : null;
+    if (dto.birthDate !== undefined)
+      data.birthDate = dto.birthDate ? new Date(dto.birthDate) : null;
     if (dto.address !== undefined) data.address = dto.address ?? null;
     if (dto.branchId !== undefined) {
       data.branch = dto.branchId ? { connect: { id: dto.branchId } } : { disconnect: true };

@@ -10,11 +10,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { Paginated, paginate } from '../../common/pagination/pagination.dto';
 import { RuleRegistry } from '../rules/rule.registry';
 import { AutomationScheduler } from '../automation.scheduler';
-import {
-  CreateCampaignDto,
-  QueryCampaignDto,
-  UpdateCampaignDto,
-} from './dto/campaign.dto';
+import { CreateCampaignDto, QueryCampaignDto, UpdateCampaignDto } from './dto/campaign.dto';
 
 @Injectable()
 export class CampaignService {
@@ -88,8 +84,7 @@ export class CampaignService {
     if (dto.ruleCode !== undefined) data.ruleCode = dto.ruleCode;
     if (dto.conditions !== undefined)
       data.conditions = (dto.conditions ?? {}) as Prisma.InputJsonValue;
-    if (dto.templateId !== undefined)
-      data.template = { connect: { id: dto.templateId } };
+    if (dto.templateId !== undefined) data.template = { connect: { id: dto.templateId } };
     if (dto.fallbackTemplateId !== undefined) {
       data.fallbackTemplate = dto.fallbackTemplateId
         ? { connect: { id: dto.fallbackTemplateId } }

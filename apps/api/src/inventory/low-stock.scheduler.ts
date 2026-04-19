@@ -25,9 +25,7 @@ export class LowStockScheduler implements OnModuleInit {
     const job = CronJob.from({
       cronTime: this.cfg.inventory.lowStockCron,
       onTick: () => {
-        this.run().catch((err) =>
-          this.logger.error(`low-stock scan failed: ${err.message}`),
-        );
+        this.run().catch((err) => this.logger.error(`low-stock scan failed: ${err.message}`));
       },
     });
     this.registry.addCronJob('inventory-low-stock', job);
@@ -74,10 +72,7 @@ export class LowStockScheduler implements OnModuleInit {
       if (recentKeys.has(key)) continue;
       await this.notifications.create({
         type: NotificationType.LOW_STOCK,
-        severity:
-          s.onHand === 0
-            ? NotificationSeverity.CRITICAL
-            : NotificationSeverity.WARNING,
+        severity: s.onHand === 0 ? NotificationSeverity.CRITICAL : NotificationSeverity.WARNING,
         title: `Tồn kho thấp: ${s.product.name} @ ${s.branch.name}`,
         body: `Còn ${s.onHand} / ngưỡng ${s.product.minStock}. Cân nhắc nhập hàng.`,
         payload: {

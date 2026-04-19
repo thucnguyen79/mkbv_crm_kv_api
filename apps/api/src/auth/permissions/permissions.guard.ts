@@ -47,9 +47,7 @@ export class PermissionsGuard implements CanActivate {
     if (requiredPerms?.length) {
       const ok = this.permissions.hasAll(user.roleId ?? null, requiredPerms);
       if (!ok) {
-        throw new ForbiddenException(
-          `Thiếu permission: ${requiredPerms.join(', ')}`,
-        );
+        throw new ForbiddenException(`Thiếu permission: ${requiredPerms.join(', ')}`);
       }
     }
     return true;

@@ -53,7 +53,11 @@ export class WebhookService {
     return true;
   }
 
-  async handle(payload: KvWebhookPayload, rawSize = 0, verified = false): Promise<{ enqueued: string[] }> {
+  async handle(
+    payload: KvWebhookPayload,
+    rawSize = 0,
+    verified = false,
+  ): Promise<{ enqueued: string[] }> {
     const entities = new Set<string>();
     const actions: string[] = [];
     for (const notif of payload.Notifications ?? []) {
