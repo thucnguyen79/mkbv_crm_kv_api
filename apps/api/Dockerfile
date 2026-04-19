@@ -27,13 +27,15 @@ RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 COPY --from=builder /repo/apps/api/package.json ./package.json
 COPY --from=builder /repo/apps/api/prisma ./prisma
 COPY --from=builder /repo/apps/api/dist ./dist
-# Copy CẢ root node_modules (pnpm symlinks ở apps/api/node_modules trỏ về /repo/node_modules/.pnpm)
-COPY --from=builder /repo/node_modules /repo/node_modules
-COPY --from=builder /repo/apps/api/node_modules ./node_modules
 
-# Prisma CLI nằm ở devDependencies — install riêng vào runner để hỗ trợ `prisma migrate deploy` lúc start
-RUN npm install --global --no-save prisma@5.20.0 && npm cache clean --force
+# Install deps with npm directly in runner — pnpm workspace symlinks không portable qua COPY.
+# npm install --omit=dev tạo node_modules flat, deterministic.
+# Thêm prisma CLI (dù devDep) để hỗ trợ migrate deploy lúc startup.
+RUN npm install --omit=dev --no-audit --no-fund && \
+    npm install prisma@5.20.0 --no-save --no-audit --no-fund && \
+    npx prisma generate --schema=./prisma/schema.prisma && \
+    npm cache clean --force
 
 EXPOSE 3000
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["sh", "-c", "prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main.js"]
